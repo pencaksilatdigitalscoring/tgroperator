@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DIGITAL SCORING TGR - OPERATOR</title>
+    <!-- GOOGLE FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- FONT AWESOME ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <!-- EXPORT & IMPORT LIBRARIES -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            /* DARK THEME COLORS (UNTUK PANEL) */
+            --bg-main: #ffffff; 
+            --bg-card: #151c2c;
+            --bg-panel: #1a2235;
+            --border-color: #2a3449;
+            
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+            --text-cyan: #00d2ff;
+            --text-gold: #facc15;
+            
+            --primary: #007bff;
+            --secondary: #00d2ff;
+            --success: #10b981; 
+            --danger: #ef4444;  
+            --warning: #f59e0b; 
+            --info: #3b82f6;
+            --purple: #8b5cf6;
+            
+            --biru-border: #0a58ca;
+            --merah-border: #b02a37;
+            
+            --shadow: 0 4px 20px rgba(0,0,0,0.3);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            text-transform: uppercase;
+        }
+
+        /* BACKGROUND VIDEO STYLING */
+        #bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover; 
+            z-index: -2;
+        }
+        
+        /* OVERLAY UNTUK VIDEO BACKGROUND AGAR TEKS TETAP TERBACA */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.15); 
+            z-index: -1;
+        }
+
+        /* HEADER STYLING */
+        .main-header {
+            padding: 20px 20px 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .main-header .title-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .main-header .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            letter-spacing: 1px;
+            font-weight: 500;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        .main-header .title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-gold);
+            line-height: 1.1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* LOGIN PAGE STYLING */
+        #login-section {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10000; background-color: rgba(0,0,0,0.4);
+        }
+        .login-box {
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(15px);
+            padding: 40px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center; color: white; width: 90%; max-width: 420px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .login-box h2 { font-size: 1.6rem; margin-bottom: 5px; color: var(--secondary); }
+        .login-box input { width: 100%; padding: 12px; margin-top: 15px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; }
+        .btn-login { width: 100%; padding: 12px; background: var(--primary); border: none; border-radius: 10px; color: white; font-weight: bold; margin-top: 20px; cursor: pointer; }
+
+        #main-app { display: none; flex-direction: column; width: 100%; flex-grow: 1; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 20px 20px 20px; width: 100%; }
+
+        /* GRID PENGATURAN KONTROL & PANEL */
+        .control-panels-grid { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; 
+        }
+        .control-panel { 
+            background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .panel-header {
+            padding: 12px 20px; border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem; font-weight: 700; color: white;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .panel-header-blue::before { content: "|"; color: var(--secondary); font-weight: 900; font-size: 1.2rem; }
+        .panel-header-red::before { content: "|"; color: var(--danger); font-weight: 900; font-size: 1.2rem; }
+        .panel-body { padding: 20px; }
+
+        /* TIMER STYLING */
+        .operator-timer-container { 
+            text-align: center; padding: 15px; background: #0f1522; 
+            border-radius: 10px; margin-bottom: 15px; border: 2px solid #1a2436;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .op-timer-val { 
+            font-size: 4rem; font-weight: 700; color: #ffffff; 
+            font-family: 'Share Tech Mono', monospace; 
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.3); letter-spacing: 2px;
+        }
+        .op-controls, .op-action-grid { display: grid; gap: 12px; }
+        .op-controls { grid-template-columns: repeat(3, 1fr); }
+        .op-action-grid { grid-template-columns: repeat(2, 1fr); }
+        
+        .op-btn { 
+            padding: 12px; border: none; border-radius: 8px; color: white; 
+            font-weight: 700; font-size: 0.9rem; cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; gap: 8px; 
+            transition: transform 0.1s, filter 0.2s;
+        }
+        .op-btn:active { transform: scale(0.97); }
+        .op-btn:hover { filter: brightness(1.1); }
+        
+        .btn-green { background: linear-gradient(180deg, #10b981, #059669); }
+        .btn-orange { background: linear-gradient(180deg, #f59e0b, #d97706); }
+        .btn-red { background: linear-gradient(180deg, #ef4444, #dc2626); }
+        .btn-yellow { background: linear-gradient(180deg, #eab308, #ca8a04); color: #000; }
+        .full-width { grid-column: 1 / -1; padding: 18px; font-size: 1.1rem; letter-spacing: 1px; }
+
+        /* TABEL PESERTA TANDING KONTROL */
+        .table-section { 
+            background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); 
+            box-shadow: var(--shadow); padding: 20px;
+        }
+        .table-toolbar {
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 20px; flex-wrap: wrap; gap: 15px;
+        }
+        .table-title { font-size: 1.1rem; font-weight: 700; color: white; }
+        
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-action {
+            padding: 8px 15px; border: none; border-radius: 6px; color: white; 
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .bg-teal { background: #0d9488; }
+        .bg-blue { background: #2563eb; }
+        .bg-orange { background: #ea580c; }
+        .bg-red { background: #dc2626; }
+
+        /* THE TABLE */
+        .op-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; font-size: 0.85rem; min-width: 900px; }
+        .op-table th { 
+            padding: 10px; text-align: center; color: var(--text-muted); 
+            font-weight: 600; border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+        }
+        .op-table td { padding: 5px; vertical-align: middle; }
+        
+        /* CARD INSIDE TABLE CELLS */
+        .corner-card {
+            border-radius: 8px; padding: 12px;
+            display: flex; flex-direction: column; gap: 6px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .card-biru { background-color: #0d6efd; border: 2px solid var(--biru-border); }
+        .card-merah { background-color: #dc3545; border: 2px solid var(--merah-border); }
+        
+        /* WARNA ABU-ABU UNTUK PESERTA YANG GUGUR / FINISH */
+        .card-abu { 
+            background-color: #475569 !important; 
+            border: 2px solid #334155 !important; 
+            opacity: 0.5; 
+        }
+
+        /* EFEK PESERTA MENANG */
+        .card-winner {
+            border: 2px solid var(--text-gold) !important;
+            box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+        }
+        
+        .name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .fighter-name { font-weight: 700; font-size: 1rem; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+        
+        .fighter-sub { font-size: 0.75rem; color: #f8f9fa; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+
+        /* BADGE SCORE */
+        .score-badge {
+            background: rgba(0,0,0,0.3);
+            padding: 6px;
+            border-radius: 6px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.25rem;
+            color: #ffffff; /* FONT WARNA PUTIH SESUAI REQUEST */
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            letter-spacing: 1px;
+            margin: 2px 0;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.4); /* Glow putih halus */
+        }
+        
+        .status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 5px; }
+        .btn-status {
+            padding: 6px 0; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.3); 
+            border-radius: 4px; color: #f8f9fa; font-size: 0.7rem; font-weight: 600; 
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-status:hover { border-color: #ffffff; color: #ffffff; background: rgba(0,0,0,0.4); }
+        .btn-status.active-ready { background: #ffffff; border-color: #ffffff; color: #000000; box-shadow: 0 0 8px rgba(255,255,255,0.6); }
+        .btn-status.active-fight { background: #ffc107; border-color: #ffc107; color: #000000; box-shadow: 0 0 8px rgba(255,193,7,0.6); }
+        .btn-status.active-finish { background: #198754; border-color: #198754; color: #ffffff; box-shadow: 0 0 8px rgba(25,135,84,0.6); }
+
+        /* FONT KETERANGAN PARTAI WARNA PUTIH */
+        .keterangan-text { 
+            text-align: center; color: #ffffff; font-weight: 700; 
+            font-size: 0.85rem; line-height: 1.4; padding: 0 10px;
+        }
+
+        .action-cell-btns { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+        .btn-mini { 
+            width: 32px; height: 32px; border-radius: 6px; border: none; 
+            color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-edit { background: var(--info); }
+        .btn-del { background: var(--danger); }
+
+        /* PAGINATION */
+        .pagination-container { display: flex; justify-content: center; gap: 5px; margin-top: 20px; }
+        .page-btn { 
+            padding: 8px 12px; background: #1e293b; border: 1px solid #334155; 
+            color: white; cursor: pointer; border-radius: 5px; transition: 0.2s; 
+        }
+        .page-active { background: var(--primary); border-color: var(--primary); }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content { background: var(--bg-card); border: 1px solid var(--border-color); padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; }
+        .juri-out-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; }
+        .btn-modal-juri { padding: 10px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: white; cursor: pointer; font-weight: 700; }
+        .btn-modal-all { width: 100%; padding: 12px; background: var(--danger); color: white; border: none; border-radius: 8px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+
+        @media (max-width: 900px) {
+            .control-panels-grid { grid-template-columns: 1fr; }
+            .op-timer-val { font-size: 3rem; }
+            .main-header .title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BACKGROUND VIDEO REPOSIF -->
+    <video autoplay muted loop playsinline id="bg-video">
+        <source src="https://github.com/pencaksilatdigitalscoring/BRONZE-DIGITAL-SCORING-PENCAK-SILAT/raw/main/Dua_naga_terbang_menyatu_logo_202608012347.mp4" type="video/mp4">
+    </video>
+
+    <!-- HALAMAN LOGIN -->
+    <div id="login-section">
+        <div class="login-box">
+            <h2>ADMIN PANEL</h2>
+            <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 20px;">SISTEM KONTROL PERTANDINGAN TGR</p>
+            <input type="text" id="login-user" placeholder="USERNAME">
+            <input type="password" id="login-pass" placeholder="PASSWORD">
+            <button class="btn-login" onclick="processLogin()">MASUK</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main-app">
+        <!-- HEADER -->
+        <div class="main-header">
+            <div class="title-group">
+                <span class="subtitle">SISTEM KONTROL PERTANDINGAN TGR (MODE BATTLE)</span>
+                <span class="title">PENCAK SILAT</span>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="control-panels-grid">
+                
+                <!-- PANEL TIMER -->
+                <div class="control-panel">
+                    <div class="panel-header panel-header-blue">KONTROL TIMER</div>
+                    <div class="panel-body">
+                        <div class="operator-timer-container">
+                            <div class="op-timer-val" id="op-timer-display">00:00.00</div>
+                        </div>
+                        <div class="op-controls">
+                            <button class="op-btn btn-green" onclick="startTimer()"><i class="fas fa-play"></i> GO</button>
+                            <button class="op-btn btn-orange" onclick="pauseTimer()"><i class="fas fa-pause"></i> PAUSE</button>
+                            <button class="op-btn btn-red" onclick="resetTimer()"><i class="fas fa-undo"></i> RESET</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL OPERATOR -->
+                <div class="control-panel">
+                    <div class="panel-header panel-header-red">KONTROL OPERATOR</div>
+                    <div class="panel-body">
+                        <div class="op-action-grid">
+                            <button class="op-btn btn-green full-width" onclick="finishMatch()"><i class="fas fa-check"></i> FINISH MATCH (SELESAI)</button>
+                            <button class="op-btn btn-yellow" onclick="resetAll()"><i class="fas fa-sync-alt"></i> RESET NILAI</button>
+                            <button class="op-btn btn-red" onclick="showOutJuriModal()"><i class="fas fa-sign-out-alt"></i> OUT JURI</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABEL PESERTA -->
+            <div class="table-section">
+                <div class="table-toolbar">
+                    <div class="table-title">KONTROL JADWAL & PESERTA TGR</div>
+                    <div class="action-buttons">
+                        <input type="file" id="excel-import" style="display:none" accept=".xlsx, .xls" onchange="importExcel(event)">
+                        <button class="btn-action bg-teal" onclick="downloadTemplate()"><i class="fas fa-download"></i> TEMPLATE EXCEL</button>
+                        <button class="btn-action bg-blue" onclick="document.getElementById('excel-import').click()"><i class="fas fa-upload"></i> IMPORT DARI HASIL LOTING</button>
+                        <button class="btn-action bg-orange" onclick="exportDataExcel()"><i class="fas fa-file-export"></i> EXPORT EXCEL</button>
+                        <button class="btn-action bg-red" onclick="deleteAllMatches()"><i class="fas fa-trash-alt"></i> HAPUS SEMUA JADWAL</button>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="op-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">NO</th>
+                                <th style="width: 90px;">FASE</th>
+                                <th style="width: 32%;">SUDUT BIRU (NAMA & KONTINGEN)</th>
+                                <th style="width: 22%;">KETERANGAN PARTAI</th>
+                                <th style="width: 32%;">SUDUT MERAH (NAMA & KONTINGEN)</th>
+                                <th style="width: 50px;">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operator-match-table">
+                            <!-- Data Tabel Muncul Di Sini -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="pagination-controls" class="pagination-container"></div>
+            </div>
+        </div>
+        
+        <!-- MODAL JURI -->
+        <div id="modal-out-juri" class="modal-overlay">
+            <div class="modal-content">
+                <h3 style="color: white; margin-bottom: 5px;">KELUAR JURI</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">PILIH NOMOR JURI YANG INGIN DIKELUARKAN.</p>
+                <div class="juri-out-grid">
+                    <button class="btn-modal-juri" id="btn-out-juri-1" onclick="processOutJuri(1)">1</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-2" onclick="processOutJuri(2)">2</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-3" onclick="processOutJuri(3)">3</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-4" onclick="processOutJuri(4)">4</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-5" onclick="processOutJuri(5)">5</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-6" onclick="processOutJuri(6)">6</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-7" onclick="processOutJuri(7)">7</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-8" onclick="processOutJuri(8)">8</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-9" onclick="processOutJuri(9)">9</button>
+                    <button class="btn-modal-juri" id="btn-out-juri-10" onclick="processOutJuri(10)">10</button>
+                </div>
+                <button class="btn-modal-all" onclick="processOutJuri('ALL')">OUT ALL JURI</button>
+                <button class="btn-action" style="width: 100%; margin-top: 10px; justify-content: center; background:#475569;" onclick="closeModal('modal-out-juri')">TUTUP PANE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LOGIN
+        function processLogin() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            if(user === 'admin' && pass === 'riodanang97') {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+            } else { alert("USERNAME ATAU PASSWORD SALAH!"); }
+        }
+
+        // FIREBASE INITIALIZATION
+        const firebaseConfig = {
+  apiKey: "AIzaSyDZzZ957sLxMLcQQ2v3f3S2G4LbnUOyiyA",
+  authDomain: "tgr-main-silat.firebaseapp.com",
+  databaseURL: "https://tgr-main-silat-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tgr-main-silat",
+  storageBucket: "tgr-main-silat.firebasestorage.app",
+  messagingSenderId: "1099485902483",
+  appId: "1:1099485902483:web:5dc50a8e3d86eeef6abf66"
+};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let penaltyDewan = 0.00; let finalScoreValue = 0.000; let globalStDev = 0; let globalMedian = 0;
+        let juriStatusData = {};
+        let startTime; let elapsedTime = 0; let timerInterval;
+        let globalMatchData = []; let activeMatchInfo = { partai: 0, side: '', name: '', cont: '', kategori: '', img: '' };
+        let currentPage = 1; const itemsPerPage = 10;
+
+        // DATA SYNC
+        db.ref('matches').on('value', (snapshot) => {
+            const data = snapshot.val();
+            globalMatchData = data ? Object.keys(data).map(key => ({ partai: key, ...data[key] })) : [];
+            renderOperatorTable();
+        });
+
+        db.ref('juriStatus').on('value', (snapshot) => {
+            juriStatusData = snapshot.val() || {}; updateOutJuriModalColors(); 
+            db.ref('scores').once('value', snap => calculateGlobalScores(snap.val()));
+        });
+
+        db.ref('activeMatch').on('value', snap => { if(snap.val()) activeMatchInfo = snap.val(); });
+        db.ref('scores').on('value', snap => calculateGlobalScores(snap.val()));
+
+        db.ref('timer').on('value', (snapshot) => {
+            const val = snapshot.val();
+            if(val) {
+                elapsedTime = val.elapsedTime; updateTimerDisplays(elapsedTime);
+                if(val.isRunning && !timerInterval) {
+                    startTime = Date.now() - elapsedTime;
+                    timerInterval = setInterval(() => { elapsedTime = Date.now() - startTime; updateTimerDisplays(elapsedTime); }, 10);
+                } else if(!val.isRunning) { clearInterval(timerInterval); timerInterval = null; }
+            }
+        });
+
+        // TIMER FUNCTIONS
+        function startTimer() { db.ref('timer').update({ isRunning: true, startTime: Date.now() - elapsedTime }); }
+        function pauseTimer() { db.ref('timer').update({ isRunning: false, elapsedTime: elapsedTime }); }
+        
+        function resetTimer() { 
+            db.ref('timer').set({ isRunning: false, elapsedTime: 0, startTime: 0 }); 
+            if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            updateTimerDisplays(0);
+        }
+        
+        function updateTimerDisplays(time) {
+            let mins = Math.floor(time / 60000); let secs = Math.floor((time % 60000) / 1000); let ms = Math.floor((time % 1000) / 10);
+            document.getElementById('op-timer-display').innerText = 
+                (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs) + "." + (ms < 10 ? "0" + ms : ms);
+        }
+
+        // PENGHITUNGAN & REALTIME UPDATE KE TABEL
+        function calculateGlobalScores(scores) {
+            if(!scores) return;
+            let juriValuesForAvg = []; let allJuriValues = [];
+            for(let i=1; i<=10; i++) {
+                let s = scores['juri'+i] || { score: 9.90, penalty: 0, stamina: 0, jurus: 1 };
+                allJuriValues.push(s.score);
+                if(juriStatusData['juri'+i] === true) juriValuesForAvg.push(s.score);
+            }
+            let avg = juriValuesForAvg.length > 0 ? juriValuesForAvg.reduce((a,b) => a+b,0)/juriValuesForAvg.length : 0;
+            const sorted = [...allJuriValues].sort((a,b) => a-b);
+            globalMedian = (sorted[4] + sorted[5]) / 2;
+            const meanFull = allJuriValues.reduce((a,b) => a+b, 0) / 10;
+            globalStDev = Math.sqrt(allJuriValues.map(x => Math.pow(x - meanFull, 2)).reduce((a,b) => a+b, 0) / 10);
+            penaltyDewan = scores.dewanPenalty || 0; 
+            finalScoreValue = avg - penaltyDewan; 
+            
+            // UPDATE NILAI REALTIME KE TABEL DOM TANPA RE-RENDER KESELURUHAN
+            if(activeMatchInfo && activeMatchInfo.partai) {
+                const isBlue = activeMatchInfo.side === 'biru';
+                const scoreElement = document.getElementById(`score-${isBlue ? 'blue' : 'red'}-${activeMatchInfo.partai}`);
+                if(scoreElement) {
+                    scoreElement.innerText = (finalScoreValue || 0).toFixed(3);
+                }
+            }
+        }
+
+        // RENDER TABLE
+        function renderOperatorTable() {
+            const tbody = document.getElementById('operator-match-table');
+            if(!tbody) return;
+            
+            let filteredData = globalMatchData.filter(m => (m.namaBiru && m.namaBiru.trim()!=="") || (m.namaMerah && m.namaMerah.trim()!==""));
+            if(filteredData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">MENUNGGU DATA JADWAL PESERTA...</td></tr>`;
+                document.getElementById('pagination-controls').innerHTML = ''; return;
+            }
+            
+            filteredData.sort((a, b) => Number(a.partai) - Number(b.partai));
+            let totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if(currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+            let pagedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            
+            tbody.innerHTML = '';
+            
+            pagedData.forEach((match, index) => {
+                const noIdx = (currentPage - 1) * itemsPerPage + index + 1;
+                
+                // Menggabungkan Kategori agar tampil rapi
+                let katFull = `${match.kategori || ''} ${match.usia || ''} ${match.gender || ''}`.replace(/\s+/g, ' ').trim().toUpperCase();
+                const ket = `PARTAI ${match.partai}<br><span style="font-size: 0.75rem; opacity: 0.9;">${katFull}</span>`;
+                
+                // Status Class Setup
+                const rReady = match.redStatus === 'ready' ? 'active-ready' : '';
+                const rFight = match.redStatus === 'fight' ? 'active-fight' : '';
+                const rFinish = match.redStatus === 'finish' ? 'active-finish' : '';
+                const bReady = match.blueStatus === 'ready' ? 'active-ready' : '';
+                const bFight = match.blueStatus === 'fight' ? 'active-fight' : '';
+                const bFinish = match.blueStatus === 'finish' ? 'active-finish' : '';
+
+                // Skor 
+                let bScore = parseFloat(match.blueScore) || 0;
+                let rScore = parseFloat(match.redScore) || 0;
+
+                // TAMPILKAN NILAI REALTIME APABILA STATUS PESERTA SEDANG FIGHT
+                if (match.blueStatus === 'fight' && activeMatchInfo.partai == match.partai && activeMatchInfo.side === 'biru') {
+                    bScore = finalScoreValue;
+                }
+                if (match.redStatus === 'fight' && activeMatchInfo.partai == match.partai && activeMatchInfo.side === 'merah') {
+                    rScore = finalScoreValue;
+                }
+
+                // Logika Penentuan Pemenang & Gugur (Abu-abu)
+                let classCardBiru = 'card-biru';
+                let classCardMerah = 'card-merah';
+                
+                let hasBlue = match.namaBiru && match.namaBiru !== '-';
+                let hasRed = match.namaMerah && match.namaMerah !== '-';
+                let blueDone = !hasBlue || match.blueStatus === 'finish';
+                let redDone = !hasRed || match.redStatus === 'finish';
+
+                // Jika babak sudah benar-benar selesai (keduanya Finish)
+                if (blueDone && redDone && hasBlue && hasRed) {
+                    if (bScore > rScore) {
+                        classCardMerah = 'card-abu'; // Merah Gugur
+                        classCardBiru = 'card-biru card-winner'; // Biru Menang
+                    } else if (rScore > bScore) {
+                        classCardBiru = 'card-abu'; // Biru Gugur
+                        classCardMerah = 'card-merah card-winner'; // Merah Menang
+                    }
+                }
+
+                let htmlBiru = `
+                    <td>
+                        <div class="corner-card ${classCardBiru}" style="${!hasBlue ? 'opacity:0.3; pointer-events:none;' : ''}">
+                            <div class="name-row">
+                                <span class="fighter-name">${match.namaBiru || '-'}</span>
+                            </div>
+                            <div class="fighter-sub">${match.kontBiru || '-'}</div>
+                            <div class="score-badge" id="score-blue-${match.partai}">${(bScore || 0).toFixed(3)}</div>
+                            <div class="status-row">
+                                <button class="btn-status ${bReady}" onclick="updateSideStatus('${match.partai}', 'blue', 'ready')">READY</button>
+                                <button class="btn-status ${bFight}" onclick="updateSideStatus('${match.partai}', 'blue', 'fight')">FIGHT</button>
+                                <button class="btn-status ${bFinish}" onclick="handleTableFinish('${match.partai}', 'blue')">FINISH</button>
+                            </div>
+                        </div>
+                    </td>`;
+
+                let htmlMerah = `
+                    <td>
+                        <div class="corner-card ${classCardMerah}" style="${!hasRed ? 'opacity:0.3; pointer-events:none;' : ''}">
+                            <div class="name-row">
+                                <span class="fighter-name">${match.namaMerah || '-'}</span>
+                            </div>
+                            <div class="fighter-sub">${match.kontMerah || '-'}</div>
+                            <div class="score-badge" id="score-red-${match.partai}">${(rScore || 0).toFixed(3)}</div>
+                            <div class="status-row">
+                                <button class="btn-status ${rReady}" onclick="updateSideStatus('${match.partai}', 'red', 'ready')">READY</button>
+                                <button class="btn-status ${rFight}" onclick="updateSideStatus('${match.partai}', 'red', 'fight')">FIGHT</button>
+                                <button class="btn-status ${rFinish}" onclick="handleTableFinish('${match.partai}', 'red')">FINISH</button>
+                            </div>
+                        </div>
+                    </td>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align:center; font-weight:700;">${noIdx}</td>
+                        <td style="font-weight:600; text-align:center;">${match.fase || 'PENYISIHAN'}</td>
+                        ${htmlBiru}
+                        <td class="keterangan-text">${ket}</td>
+                        ${htmlMerah}
+                        <td>
+                            <div class="action-cell-btns">
+                                <button class="btn-mini btn-del" onclick="deleteMatch('${match.partai}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            renderPaginationControls(totalPages);
+        }
+
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('pagination-controls');
+            container.innerHTML = ''; if(totalPages <= 1) return;
+            
+            let btnPrev = document.createElement('button'); btnPrev.className = 'page-btn'; btnPrev.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            btnPrev.onclick = () => { if(currentPage > 1) { currentPage--; renderOperatorTable(); } };
+            container.appendChild(btnPrev);
+            
+            for(let i=1; i<=totalPages; i++) {
+                let btn = document.createElement('button'); btn.className = `page-btn ${currentPage===i ? 'page-active' : ''}`; btn.innerText = i;
+                btn.onclick = () => { currentPage = i; renderOperatorTable(); }; container.appendChild(btn);
+            }
+            
+            let btnNext = document.createElement('button'); btnNext.className = 'page-btn'; btnNext.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            btnNext.onclick = () => { if(currentPage < totalPages) { currentPage++; renderOperatorTable(); } };
+            container.appendChild(btnNext);
+        }
+
+        // ACTIONS
+        function updateSideStatus(partai, side, status) {
+            db.ref('matches/' + partai).update({ [side === 'red' ? 'redStatus' : 'blueStatus']: status });
+            if(status === 'fight') {
+                const match = globalMatchData.find(m => m.partai == partai);
+                if(match) {
+                    let katFull = `${match.kategori || ''} ${match.usia || ''} ${match.gender || ''}`.replace(/\s+/g, ' ').trim();
+                    db.ref('activeMatch').set({
+                        partai: match.partai, side: side === 'red' ? 'merah' : 'biru',
+                        name: side === 'red' ? match.namaMerah : match.namaBiru,
+                        cont: side === 'red' ? match.kontMerah : match.kontBiru,
+                        kategori: katFull,
+                        img: ''
+                    });
+                    resetAll(true);
+                }
+            }
+        }
+
+        function handleTableFinish(partai, side) {
+            if (activeMatchInfo.partai == partai && activeMatchInfo.side == (side === 'red' ? 'merah' : 'biru')) finishMatch(); 
+            else alert("HARAP SET STATUS KE 'FIGHT' TERLEBIH DAHULU UNTUK PESERTA INI SEBELUM MENGAKHIRI PERTANDINGAN.");
+        }
+
+        function finishMatch() {
+            if(!activeMatchInfo.name) { alert("PILIH PESERTA DULU DARI TABEL (KLIK FIGHT)!"); return; }
+            if(confirm("SELESAIKAN PERTANDINGAN DAN SIMPAN NILAI?")) {
+                let mins = Math.floor(elapsedTime / 60000); let secs = Math.floor((elapsedTime % 60000) / 1000); let ms = Math.floor((elapsedTime % 1000) / 10);
+                let time = (mins < 10 ? "0"+mins : mins) + ":" + (secs < 10 ? "0"+secs : secs) + "." + (ms < 10 ? "0"+ms : ms);
+                
+                let isBlue = (activeMatchInfo.side === 'biru');
+                let scoreField = isBlue ? 'blueScore' : 'redScore';
+                let statusField = isBlue ? 'blueStatus' : 'redStatus';
+
+                db.ref('rekap').push({ partai: activeMatchInfo.partai, name: activeMatchInfo.name, cont: activeMatchInfo.cont, kategori: activeMatchInfo.kategori, median: globalMedian, stdev: globalStDev, final: finalScoreValue, waktu: time, timerMs: elapsedTime, timestamp: Date.now() })
+                .then(() => { 
+                    db.ref('matches/' + activeMatchInfo.partai).update({ 
+                        [statusField]: 'finish',
+                        [scoreField]: finalScoreValue
+                    }).then(() => {
+                        // CEK & AUTO ADVANCE JIKA KEDUANYA FINISH
+                        checkAndAdvanceWinner(activeMatchInfo.partai);
+
+                        alert("DATA BERHASIL DISIMPAN!"); 
+                        resetAll(true); 
+                        resetTimer(); // Timer langsung direset
+                    });
+                });
+            }
+        }
+
+        // SISTEM AUTO ADVANCE (NEXT ROUND)
+        function checkAndAdvanceWinner(partaiStr) {
+            db.ref('matches/' + partaiStr).once('value').then(snap => {
+                let match = snap.val();
+                if (match && match.blueStatus === 'finish' && match.redStatus === 'finish') {
+                    let bScore = parseFloat(match.blueScore) || 0;
+                    let rScore = parseFloat(match.redScore) || 0;
+                    
+                    if (bScore === 0 && rScore === 0) return; // Prevent bugs
+                    
+                    let winnerName = "";
+                    let winnerKont = "";
+                    
+                    if (bScore > rScore) {
+                        winnerName = match.namaBiru;
+                        winnerKont = match.kontBiru;
+                    } else if (rScore > bScore) {
+                        winnerName = match.namaMerah;
+                        winnerKont = match.kontMerah;
+                    } else {
+                        return; // Nilai Seri / Draw - Operator harus mengubah manual atau lakukan tanding ulang/verifikasi std
+                    }
+                    
+                    let searchStr = "PEMENANG PARTAI " + match.partai;
+                    
+                    // Mencari partai selanjutnya yang sedang menunggu 'PEMENANG PARTAI [X]'
+                    db.ref('matches').once('value').then(allSnap => {
+                        let allMatches = allSnap.val();
+                        let updates = {};
+                        for (let p in allMatches) {
+                            let m = allMatches[p];
+                            if (m.namaBiru === searchStr) {
+                                updates[`${p}/namaBiru`] = winnerName;
+                                updates[`${p}/kontBiru`] = winnerKont;
+                            }
+                            if (m.namaMerah === searchStr) {
+                                updates[`${p}/namaMerah`] = winnerName;
+                                updates[`${p}/kontMerah`] = winnerKont;
+                            }
+                        }
+                        if (Object.keys(updates).length > 0) {
+                            db.ref('matches').update(updates);
+                        }
+                    });
+                }
+            });
+        }
+
+        function resetAll(silent = false) {
+            db.ref('scores/dewanPenalty').set(0);
+            let resetScores = {}; for(let i=1; i<=10; i++) resetScores['juri'+i] = { score: 9.90, penalty: 0, stamina: 0, kekayaan: 0, kebenaran: 0, jurus: 1 };
+            db.ref('scores').update(resetScores);
+            if(!silent) alert("✅ RESET NILAI BERHASIL!");
+        }
+
+        function deleteMatch(partai) { if(confirm(`HAPUS DATA PARTAI ${partai}?`)) db.ref('matches/' + partai).remove(); }
+        function deleteAllMatches() { if(confirm("YAKIN MENGHAPUS SELURUH JADWAL PERTANDINGAN?")) db.ref('matches').remove(); }
+
+        // --- EXCEL FUNCTIONS: DISESUAIKAN DENGAN FORMAT HASIL LOTING ---
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([["NO","PARTAI","FASE","KATEGORI","NAMA PESERTA (BIRU)","KONTINGEN (BIRU)","NAMA PESERTA (MERAH)","KONTINGEN (MERAH)"]]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "TEMPLATE_JADWAL");
+            XLSX.writeFile(wb, "TEMPLATE_JADWAL_TGR.xlsx");
+        }
+
+        function importExcel(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" }); 
+                
+                if (json.length > 0) {
+                    let updates = {};
+                    json.forEach(row => {
+                        const keys = Object.keys(row);
+                        
+                        const getVal = (possibleKeys) => {
+                            let foundKey = keys.find(k => possibleKeys.some(pk => k.toUpperCase().includes(pk.toUpperCase())));
+                            return foundKey ? row[foundKey].toString().trim() : "";
+                        };
+
+                        let partai = getVal(["PARTAI"]);
+                        if (!partai) return; 
+
+                        let fase = getVal(["FASE"]);
+                        let kategori = getVal(["KATEGORI"]); 
+                        let usia = getVal(["USIA"]); 
+                        let gender = getVal(["GENDER"]); 
+                        
+                        let namaBiru = row["NAMA PESERTA (BIRU)"] || row["NAMA PESERTA / TIM (BIRU)"] || getVal(["NAMA BIRU", "PESERTA BIRU", "PESERTA (BIRU)"]);
+                        let kontBiru = row["KONTINGEN (BIRU)"] || getVal(["KONTINGEN BIRU", "KONT BIRU"]);
+                        
+                        let namaMerah = row["NAMA PESERTA (MERAH)"] || row["NAMA PESERTA / TIM (MERAH)"] || getVal(["NAMA MERAH", "PESERTA MERAH", "PESERTA (MERAH)"]);
+                        let kontMerah = row["KONTINGEN (MERAH)"] || getVal(["KONTINGEN MERAH", "KONT MERAH"]);
+
+                        updates[String(partai)] = { 
+                            partai: String(partai), 
+                            fase: fase.toUpperCase(), 
+                            kategori: kategori.toUpperCase(), 
+                            usia: usia.toUpperCase(), 
+                            gender: gender.toUpperCase(), 
+                            namaBiru: namaBiru.toString().toUpperCase(), 
+                            kontBiru: kontBiru.toString().toUpperCase(), 
+                            namaMerah: namaMerah.toString().toUpperCase(), 
+                            kontMerah: kontMerah.toString().toUpperCase(), 
+                            redStatus: "", 
+                            blueStatus: "",
+                            blueScore: 0,
+                            redScore: 0
+                        };
+                    });
+                    
+                    if(Object.keys(updates).length > 0) {
+                        db.ref('matches').update(updates).then(() => alert("✅ JADWAL BERHASIL DI-IMPORT!"));
+                    } else {
+                        alert("Gagal membaca file. Pastikan header Excel sesuai format.");
+                    }
+                }
+                event.target.value = '';
+            }; reader.readAsArrayBuffer(file);
+        }
+
+        function exportDataExcel() {
+            let data = globalMatchData.filter(m => m.namaBiru || m.namaMerah); if (data.length === 0) return alert("DATA JADWAL KOSONG!");
+            let ws_data = [["NO","PARTAI","FASE","KATEGORI","NAMA PESERTA (BIRU)","KONTINGEN (BIRU)","SKOR BIRU","NAMA PESERTA (MERAH)","KONTINGEN (MERAH)", "SKOR MERAH"]];
+            
+            data.sort((a,b) => Number(a.partai)-Number(b.partai)).forEach((m, idx) => {
+                let katFull = `${m.kategori || ''} ${m.usia || ''} ${m.gender || ''}`.replace(/\s+/g, ' ').trim();
+                ws_data.push([idx + 1, m.partai, m.fase, katFull, m.namaBiru, m.kontBiru, m.blueScore || 0, m.namaMerah, m.kontMerah, m.redScore || 0]);
+            });
+            
+            const wb = XLSX.utils.book_new(); 
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            const colWidths = [{wch:5}, {wch:8}, {wch:15}, {wch:30}, {wch:30}, {wch:25}, {wch:12}, {wch:30}, {wch:25}, {wch:12}];
+            ws['!cols'] = colWidths;
+            
+            XLSX.utils.book_append_sheet(wb, ws, "DATA_JADWAL");
+            XLSX.writeFile(wb, "DATA_JADWAL_TGR_OPERATOR.xlsx");
+        }
+
+        // MODAL JURI
+        function showOutJuriModal() { updateOutJuriModalColors(); document.getElementById('modal-out-juri').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function updateOutJuriModalColors() {
+            for(let i=1; i<=10; i++) {
+                let b = document.getElementById('btn-out-juri-'+i);
+                if(b) {
+                    let on = juriStatusData['juri'+i] === true;
+                    b.style.background = on ? 'var(--success)' : 'var(--danger)'; b.style.borderColor = on ? 'var(--success)' : 'var(--danger)';
+                }
+            }
+        }
+        function processOutJuri(v) {
+            if(v === 'ALL') { if(confirm("LOGOUT SEMUA JURI?")) { let u={}; for(let i=1; i<=10; i++) u['juriStatus/juri'+i]=false; db.ref().update(u); } } 
+            else db.ref('juriStatus/juri'+v).set(false);
+        }
+    </script>
+</body>
+</html>
